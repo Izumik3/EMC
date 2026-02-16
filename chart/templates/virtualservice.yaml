@@ -1,0 +1,33 @@
+---
+{{- if .Values.app.istio.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "app.fullname" . }}-vs
+  namespace: {{ .Release.Namespace }}
+spec:
+  exportTo:
+    - istio-system
+  hosts:
+    - {{ printf "%s.%s.k8s.infra.zlp.ooo" (include "app.name" .) .Release.Namespace }}
+
+    {{- $env := .Values.app.env | default "dev" }}
+    {{- with (index .Values.app.customHosts $env) }}
+    {{- range . }}
+    - {{ . }}
+    {{- end }}
+    {{- end }}
+
+  gateways:
+    - {{ .Values.app.istio.gateway | default "ingress-gateway" }}
+
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: {{ include "app.fullname" . }}
+            port:
+              number: {{ .Values.app.port }}
+{{- end }}

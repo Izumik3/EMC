@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+}
+
+@layer base {
+  @theme {
+    --color-main: #2485B3;
+    --color-text-gray: #2B2A29;
+    --footer-background: #191C30;
+  }
+}
+
+.text-blue {
+  color: var(--color-main);
+}
+
+.text-gray {
+  color: var(--color-text-gray);
+}
+
+.bg-blue {
+  background-color: var(--color-main);
+}
+
+.bg-footer {
+  background-color: var(--footer-background);
+}

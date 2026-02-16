@@ -1,0 +1,13 @@
+app:
+  imageName: oci-public.registry.zlp.ooo/pd/emc-frontend:latest
+  replicas: 1
+  istio:
+    enabled: true
+    gateway: istio-system/public-gateway
+  customHosts:
+    prod:
+      - emc.zlp.ooo
+    dev:
+      - emc.zlp.ooo
+  port: 3000
+  env: prod
