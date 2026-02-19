@@ -17,6 +17,9 @@ export default function FeedbackForm() {
   // Состояние ошибок
   const [errors, setErrors] = useState({});
   
+  // Показывать ли ошибки (после попытки отправки или при blur)
+  const [showErrors, setShowErrors] = useState(false);
+  
   // Состояние отправки
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
@@ -24,6 +27,7 @@ export default function FeedbackForm() {
   // Обновление полей
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Очищаем ошибку при изменении
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }));
     }
@@ -40,39 +44,66 @@ export default function FeedbackForm() {
     return digits.length >= 11;
   };
 
-  // Валидация формы
+  // Проверка конкретного поля
+  const validateField = (field, value) => {
+    switch (field) {
+      case 'name':
+        if (!value || value.trim().length < 2) return 'Имя слишком короткое';
+        break;
+      case 'email':
+        if (!value || !isValidEmail(value)) return 'Введите корректный email';
+        break;
+      case 'phone':
+        if (!value || !isValidPhone(value)) return 'Введите корректный номер';
+        break;
+      case 'message':
+        if (!value || value.trim().length < 10) return 'Сообщение слишком короткое';
+        break;
+      case 'consent':
+        if (!value) return 'Необходимо согласие на обработку данных';
+        break;
+      default:
+        return null;
+    }
+    return null;
+  };
+
+  // Валидация всей формы
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors = {
+      name: validateField('name', formData.name),
+      email: validateField('email', formData.email),
+      phone: validateField('phone', formData.phone),
+      message: validateField('message', formData.message),
+      consent: validateField('consent', formData.consent),
+    };
 
-    if (!formData.name || formData.name.trim().length < 2) {
-      newErrors.name = 'Имя слишком короткое';
-    }
-
-    if (!formData.email || !isValidEmail(formData.email)) {
-      newErrors.email = 'Введите корректный email';
-    }
-
-    if (!formData.phone || !isValidPhone(formData.phone)) {
-      newErrors.phone = 'Введите корректный номер телефона';
-    }
-
-    if (!formData.message || formData.message.trim().length < 10) {
-      newErrors.message = 'Сообщение слишком короткое (минимум 10 символов)';
-    }
-
-    if (!formData.consent) {
-      newErrors.consent = 'Необходимо согласие на обработку данных';
-    }
+    // Убираем null ошибки
+    Object.keys(newErrors).forEach(key => {
+      if (!newErrors[key]) delete newErrors[key];
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Обработчик blur (когда пользователь уходит из поля)
+  const handleBlur = (field) => {
+    if (showErrors) {
+      const error = validateField(field, formData[field]);
+      setErrors(prev => ({ ...prev, [field]: error }));
+    }
   };
 
   // Отправка формы
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    setShowErrors(true);
+    
+    if (!validateForm()) {
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitStatus(null);
@@ -95,6 +126,7 @@ export default function FeedbackForm() {
       if (response.ok && data.success) {
         setSubmitStatus('success');
         setFormData({ name: '', email: '', phone: '', message: '', consent: false });
+        setShowErrors(false);
       } else {
         setSubmitStatus('error');
         if (data.error) {
@@ -107,14 +139,6 @@ export default function FeedbackForm() {
       setIsSubmitting(false);
     }
   };
-
-  // Проверка валидности формы
-  const isFormValid = 
-    formData.name.trim().length >= 2 &&
-    isValidEmail(formData.email) &&
-    isValidPhone(formData.phone) &&
-    formData.message.trim().length >= 10 &&
-    formData.consent;
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto px-4">
@@ -130,8 +154,11 @@ export default function FeedbackForm() {
           placeholder="Иван"
           value={formData.name}
           onChange={(e) => updateField('name', e.target.value)}
+          onBlur={() => handleBlur('name')}
         />
-        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+        {showErrors && errors.name && (
+          <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+        )}
       </div>
 
       {/* Email */}
@@ -142,8 +169,11 @@ export default function FeedbackForm() {
           placeholder="email@example.com"
           value={formData.email}
           onChange={(e) => updateField('email', e.target.value)}
+          onBlur={() => handleBlur('email')}
         />
-        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+        {showErrors && errors.email && (
+          <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+        )}
       </div>
 
       {/* Телефон */}
@@ -154,8 +184,11 @@ export default function FeedbackForm() {
           placeholder="+7 (999) 999-99-99"
           value={formData.phone}
           onChange={(e) => updateField('phone', e.target.value)}
+          onBlur={() => handleBlur('phone')}
         />
-        {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+        {showErrors && errors.phone && (
+          <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+        )}
       </div>
 
       {/* Сообщение */}
@@ -168,9 +201,14 @@ export default function FeedbackForm() {
           placeholder="Опишите ваш вопрос или предложение..."
           value={formData.message}
           onChange={(e) => updateField('message', e.target.value)}
-          className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue"
+          onBlur={() => handleBlur('message')}
+          className={`w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue ${
+            showErrors && errors.message ? 'border-red-500' : 'border-gray-200'
+          }`}
         />
-        {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message}</p>}
+        {showErrors && errors.message && (
+          <p className="text-red-500 text-sm mt-1">{errors.message}</p>
+        )}
       </div>
 
       {/* Согласие */}
@@ -178,20 +216,27 @@ export default function FeedbackForm() {
         <Checkbox
           label="Я согласен с Политикой в отношении обработки персональных данных"
           checked={formData.consent}
-          onChange={(checked) => updateField('consent', checked)}
+          onChange={(checked) => {
+            updateField('consent', checked);
+            if (showErrors) {
+              setErrors(prev => ({ ...prev, consent: validateField('consent', checked) }));
+            }
+          }}
         />
-        {errors.consent && <p className="text-red-500 text-sm mt-1">{errors.consent}</p>}
+        {showErrors && errors.consent && (
+          <p className="text-red-500 text-sm mt-1">{errors.consent}</p>
+        )}
       </div>
 
       {/* Кнопка */}
       <button
         type="submit"
-        disabled={!isFormValid || isSubmitting}
+        disabled={isSubmitting}
         className={`w-full py-3 px-6 rounded-full font-normal transition-all ${
           submitStatus === 'success'
             ? 'bg-green-500 text-white'
             : 'bg-blue text-white hover:opacity-90'
-        } ${(!isFormValid || isSubmitting) && submitStatus !== 'success' ? 'opacity-50 cursor-not-allowed' : ''}`}
+        } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isSubmitting ? 'Отправка...' : submitStatus === 'success' ? 'Отправлено!' : 'Отправить'}
       </button>
