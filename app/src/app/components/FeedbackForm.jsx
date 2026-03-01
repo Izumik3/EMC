@@ -49,7 +49,8 @@ export default function FeedbackForm() {
     switch (field) {
       case 'name':
         if (!value || value.trim().length < 2) return 'Имя слишком короткое';
-        break;
+        if (!/^[а-яА-Яa-zA-Z\s-]+$/.test(value)) return 'Имя должно содержать только буквы';
+          break;
       case 'email':
         if (!value || !isValidEmail(value)) return 'Введите корректный email';
         break;

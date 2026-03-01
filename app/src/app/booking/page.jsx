@@ -108,6 +108,44 @@ export default function BookingPage() {
         return;
       }
 
+      // НОВАЯ ПРОВЕРКА: галочка политики
+      if (!localData.complience) {
+        setError('Необходимо согласие с политикой конфиденциальности');
+        return;
+      }
+
+        // НОВЫЕ ПРОВЕРКИ:
+  
+      // Телефон: минимум 11 цифр
+      const phoneDigits = localData.phone.replace(/\D/g, '');
+      if (phoneDigits.length < 11) {
+        setError('Введите корректный номер телефона (минимум 11 цифр)');
+        return;
+      }
+      
+      // Имя: минимум 2 буквы, только буквы
+      if (!localData.name || localData.name.trim().length < 2 || !/^[а-яА-Яa-zA-Z\s-]+$/.test(localData.name)) {
+        setError('Введите корректное имя (минимум 2 буквы)');
+        return;
+      }
+      
+      // Фамилия: минимум 2 буквы, только буквы
+      if (!localData.surname || localData.surname.trim().length < 2 || !/^[а-яА-Яa-zA-Z\s-]+$/.test(localData.surname)) {
+        setError('Введите корректную фамилию (минимум 2 буквы)');
+        return;
+      }
+      
+      // VIN: ровно 17 символов, только буквы и цифры (без O, Q, I)
+      if (!localData.vin || !/^[A-HJ-NPR-Z0-9]{17}$/i.test(localData.vin)) {
+        setError('VIN должен содержать ровно 17 символов (буквы и цифры, без O, Q, I)');
+        return;
+      }
+      
+      // Если все проверки пройдены — идём дальше
+      Object.entries(localData).forEach(([field, value]) => {
+        updateField(field, value);
+      });
+
       // Сохраняем данные
       Object.entries(localData).forEach(([field, value]) => {
         updateField(field, value);
