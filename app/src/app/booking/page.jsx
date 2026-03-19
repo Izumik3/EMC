@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import RadioButton from '@/components/RadioButton';
 import Checkbox from '@/components/Checkbox';
@@ -638,19 +638,19 @@ export default function BookingPage() {
   };
 
   // ================================
-  // ШАГ 4: Заявка создана
+  // ШАГ 4: Заявка создана (исправленная версия)
   // ================================
   const Step4 = () => {
-    const randomNumber = Math.floor(Math.random() * 100) + 1;
-
+    const randomNumber = useMemo(() => Math.floor(Math.random() * 100) + 1, []);
+    
     useEffect(() => {
       fetch('/api/saveBooking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, bookingNumber: randomNumber }),
       }).then(() => console.log('Заявка сохранена'));
-    }, [formData]);
-
+    }, [formData, randomNumber]);
+    
     return (
       <div className="w-full max-w-md mx-auto px-4">
         <div className="flex justify-between items-center mb-6">
@@ -704,4 +704,4 @@ export default function BookingPage() {
       {step === 5 && <Step4 />}
     </div>
   );
-}
+};
