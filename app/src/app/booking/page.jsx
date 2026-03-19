@@ -27,7 +27,6 @@ export default function BookingPage() {
     //step 2 Diagnostic
     diagnosticType: '',
     symptoms: [],
-
     //step 3 total price
     totalPrice: '',
   });
@@ -65,7 +64,6 @@ export default function BookingPage() {
     { id: 'brake_discs', label: 'Замена тормозных дисков', price: '10000р' },
   ];
 
-
   // Симптомы для диагностики
   const symptoms = [
     { id: 'knocking', label: 'Стуки' },
@@ -81,7 +79,7 @@ export default function BookingPage() {
   ];
 
   // ================================
-  // ШАГ 1: Создание заявки (обновлённый)
+  // ШАГ 1: Создание заявки (ИСПРАВЛЕН)
   // ================================
   const Step1 = () => {
     const [localData, setLocalData] = useState({
@@ -93,20 +91,74 @@ export default function BookingPage() {
       isDiagnostic: formData.isDiagnostic || false,
       complience: formData.complience,
     });
+    const [error, setError] = useState('');
 
     const updateLocal = (field, value) => {
       setLocalData(prev => ({ ...prev, [field]: value }));
+      // Очищаем ошибку при изменении
+      if (field === 'isTO' || field === 'isDiagnostic') {
+        setError('');
+      }
     };
 
     const handleNext = () => {
+      // Валидация: должен быть выбран хотя бы один вариант
+      if (!localData.isTO && !localData.isDiagnostic) {
+        setError('Выберите ТО или Диагностику');
+        return;
+      }
+
+      // НОВАЯ ПРОВЕРКА: галочка политики
+      if (!localData.complience) {
+        setError('Необходимо согласие с политикой конфиденциальности');
+        return;
+      }
+
+        // НОВЫЕ ПРОВЕРКИ:
+  
+      // Телефон: минимум 11 цифр
+      const phoneDigits = localData.phone.replace(/\D/g, '');
+      if (phoneDigits.length < 11) {
+        setError('Введите корректный номер телефона (минимум 11 цифр)');
+        return;
+      }
+      
+      // Имя: минимум 2 буквы, только буквы
+      if (!localData.name || localData.name.trim().length < 2 || !/^[а-яА-Яa-zA-Z\s-]+$/.test(localData.name)) {
+        setError('Введите корректное имя (минимум 2 буквы)');
+        return;
+      }
+      
+      // Фамилия: минимум 2 буквы, только буквы
+      if (!localData.surname || localData.surname.trim().length < 2 || !/^[а-яА-Яa-zA-Z\s-]+$/.test(localData.surname)) {
+        setError('Введите корректную фамилию (минимум 2 буквы)');
+        return;
+      }
+      
+      // VIN: ровно 17 символов, только буквы и цифры (без O, Q, I)
+      if (!localData.vin || !/^[A-HJ-NPR-Z0-9]{17}$/i.test(localData.vin)) {
+        setError('VIN должен содержать ровно 17 символов (буквы и цифры, без O, Q, I)');
+        return;
+      }
+      
+      // Если все проверки пройдены — идём дальше
       Object.entries(localData).forEach(([field, value]) => {
         updateField(field, value);
       });
-      if (localData.isDiagnostic && !localData.isTO) {
-        setStep(3);
-        return;
+
+      // Сохраняем данные
+      Object.entries(localData).forEach(([field, value]) => {
+        updateField(field, value);
+      });
+
+      // Переход на следующий шаг
+      if (localData.isTO && !localData.isDiagnostic) {
+        setStep(2); // Только ТО
+      } else if (!localData.isTO && localData.isDiagnostic) {
+        setStep(3); // Только диагностика
+      } else {
+        setStep(2); // И ТО, и диагностика (сначала ТО)
       }
-      setStep(2);
     };
 
     return (
@@ -127,24 +179,28 @@ export default function BookingPage() {
 
         <div className="mt-6">
           <h3 className="font-normal mb-4 text-gray text-base">Контактные данные</h3>
+          
           <TextField
             type="tel"
             label="Номер телефона"
             value={localData.phone}
             onChange={(e) => updateLocal('phone', e.target.value)}
           />
+          
           <TextField
             type="text"
             label="Имя"
             value={localData.name}
             onChange={(e) => updateLocal('name', e.target.value)}
           />
+          
           <TextField
             type="text"
             label="Фамилия"
             value={localData.surname}
             onChange={(e) => updateLocal('surname', e.target.value)}
           />
+          
           <TextField
             type="text"
             label="VIN номер машины"
@@ -153,7 +209,8 @@ export default function BookingPage() {
           />
 
           <h3 className="font-normal mb-3 mt-6 text-gray text-base">Цель обращения:</h3>
-          <div className="border border-gray-200 rounded-xl  shadow-md/5">
+          
+          <div className="border border-gray-200 rounded-xl shadow-md/5">
             <Checkbox
               label="Техническое обслуживание (ТО)"
               checked={localData.isTO}
@@ -166,10 +223,12 @@ export default function BookingPage() {
             />
           </div>
 
-          <p className="text-xs font-light mt-6 text-gray-500">
-
-          </p>
-
+          {/* ОШИБКА: отображаем под чекбоксами */}
+          {error && (
+            <div className="text-red-500 mt-2 text-sm">
+              {error}
+            </div>
+          )}
 
           <NavigationButtons
             onNext={handleNext}
@@ -177,17 +236,18 @@ export default function BookingPage() {
             showBack={false}
           />
         </div>
-          <Checkbox
-            label="Я согласен с Политикой в отношении обработки персональных данных"
-            checked={localData.complience}
-            onChange={(checked) => updateLocal('complience', checked)}
-          />
+
+        <Checkbox
+          label="Я согласен с Политикой в отношении обработки персональных данных"
+          checked={localData.complience}
+          onChange={(checked) => updateLocal('complience', checked)}
+        />
       </div>
     );
   };
 
   // ================================
-  // ШАГ 2: Работы по ТО
+  // ШАГ 2: Работы по ТО (ИСПРАВЛЕН)
   // ================================
   const Step2TO = () => {
     const [localData, setLocalData] = useState({
@@ -195,21 +255,35 @@ export default function BookingPage() {
       TOPackages: [...formData.TOPackages],
       additionalServices: [...formData.additionalServices],
     });
+    const [error, setError] = useState('');
 
     // обновление локального стейта
     const updateLocal = (field, value) => {
       setLocalData(prev => ({ ...prev, [field]: value }));
+      // Очищаем ошибку при изменении пакетов ТО
+      if (field === 'TOPackages') {
+        setError('');
+      }
     };
 
     const handleNext = () => {
+      // Валидация: должен быть выбран хотя бы один пакет ТО
+      if (localData.TOPackages.length === 0) {
+        setError('Выберите пакет ТО');
+        return;
+      }
+
+      // Сохраняем данные
       Object.entries(localData).forEach(([field, value]) => {
         updateField(field, value);
       });
+
+      // Переход на следующий шаг
       if (formData.isDiagnostic) {
-        setStep(3);
+        setStep(3); // Если выбрана и диагностика, идём на неё
         return;
       }
-      setStep(4);
+      setStep(4); // Иначе на итоги
     };
 
     return (
@@ -226,16 +300,17 @@ export default function BookingPage() {
             ×
           </button>
         </div>
+
         {/* Индикатор прогресса */}
         <div className="mb-6 flex gap-1">
           <div className="h-1 flex-1 rounded bg-blue"></div>
           <div className="h-1 flex-1 rounded bg-blue"></div>
           <div className="h-1 flex-1 bg-gray-200 rounded"></div>
         </div>
+
         {/* Пакет ТО */}
-
-
-        <h3 className="font-normal mb-3 mt-6 text-gray text-base">Пакет ТО </h3>
+        <h3 className="font-normal mb-3 mt-6 text-gray text-base">Пакет ТО</h3>
+        
         <div className="border border-gray-200 rounded-xl shadow-md/5 p-4">
           {toPackages.map(pkg => (
             <PackageCard
@@ -254,9 +329,17 @@ export default function BookingPage() {
           ))}
         </div>
 
+        {/* ОШИБКА: отображаем под пакетами ТО */}
+        {error && (
+          <div className="text-red-500 mt-2 text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Дополнительные работы */}
         <h3 className="font-normal mb-3 mt-6 text-gray text-base">Дополнительные работы</h3>
-        <div className="border border-gray-200 rounded-xl  shadow-md/5 p-1">
+        
+        <div className="border border-gray-200 rounded-xl shadow-md/5 p-1">
           {additionalServices.map(service => (
             <ServiceItem
               key={service.id}
@@ -272,6 +355,7 @@ export default function BookingPage() {
             />
           ))}
         </div>
+
         {/* Навигация */}
         <NavigationButtons
           onBack={() => setStep(1)}
@@ -283,24 +367,58 @@ export default function BookingPage() {
   };
 
   // ================================
-  // ШАГ 2: Работы по Диагностике
+  // ШАГ 2: Работы по Диагностике (ИСПРАВЛЕН)
   // ================================
   const Step2Diagnostic = () => {
     const [localData, setLocalData] = useState({
       diagnosticType: formData.diagnosticType,
       symptoms: formData.symptoms,
     });
+    const [errors, setErrors] = useState({
+      type: '',
+      symptoms: ''
+    });
 
     const updateLocal = (field, value) => {
       setLocalData(prev => ({ ...prev, [field]: value }));
+      // Очищаем соответствующую ошибку
+      if (field === 'diagnosticType') {
+        setErrors(prev => ({ ...prev, type: '' }));
+      }
+      if (field === 'symptoms') {
+        setErrors(prev => ({ ...prev, symptoms: '' }));
+      }
     };
 
     const handleNext = () => {
+      const newErrors = { type: '', symptoms: '' };
+      let hasError = false;
+
+      // Проверка вида диагностики
+      if (!localData.diagnosticType) {
+        newErrors.type = 'Выберите вид диагностики';
+        hasError = true;
+      }
+
+      // Проверка симптомов
+      if (localData.symptoms.length === 0) {
+        newErrors.symptoms = 'Выберите хотя бы один симптом';
+        hasError = true;
+      }
+
+      if (hasError) {
+        setErrors(newErrors);
+        return;
+      }
+
+      // Сохраняем данные
       Object.entries(localData).forEach(([field, value]) => {
         updateField(field, value);
       });
-      setStep(4);
+
+      setStep(4); // На итоги
     };
+
     return (
       <div className="w-full max-w-md mx-auto px-4">
         <div className="flex justify-between items-center mb-6">
@@ -323,12 +441,12 @@ export default function BookingPage() {
           <div className="h-1 flex-1 bg-gray-200 rounded"></div>
         </div>
 
-
         {/* Вид диагностики */}
         <h3 className="font-normal mb-4 text-gray text-base">
           Вид диагностики
         </h3>
-        <div className="border border-gray-200 rounded-xl  shadow-md/5">
+        
+        <div className="border border-gray-200 rounded-xl shadow-md/5">
           {diagnosticType.map(type => (
             <RadioButton
               key={type.id}
@@ -340,11 +458,19 @@ export default function BookingPage() {
           ))}
         </div>
 
+        {/* ОШИБКА: вид диагностики */}
+        {errors.type && (
+          <div className="text-red-500 mt-2 text-sm">
+            {errors.type}
+          </div>
+        )}
+
         {/* Симптомы */}
         <h3 className="font-normal mb-2 mt-6 text-gray text-base">
           Симптомы
         </h3>
-        <div className="border border-gray-200 rounded-xl  shadow-md/5">
+        
+        <div className="border border-gray-200 rounded-xl shadow-md/5">
           {symptoms.map(symptom => (
             <Checkbox
               key={symptom.id}
@@ -360,6 +486,12 @@ export default function BookingPage() {
           ))}
         </div>
 
+        {/* ОШИБКА: симптомы */}
+        {errors.symptoms && (
+          <div className="text-red-500 mt-2 text-sm">
+            {errors.symptoms}
+          </div>
+        )}
 
         <NavigationButtons
           onBack={() => {
@@ -373,15 +505,16 @@ export default function BookingPage() {
           onNext={handleNext}
           nextLabel="Следующий шаг"
         />
-
       </div>
     );
   };
 
   // ================================
-  // ШАГ 3: Итоги
+  // ШАГ 3: Итоги (ИСПРАВЛЕН)
   // ================================
   const Step3 = () => {
+    const [error, setError] = useState('');
+
     // Рассчитываем выбранные пакеты ТО
     const selectedTOPackages = formData.TOPackages
       .map(id => toPackages.find(p => p.id === id))
@@ -402,6 +535,20 @@ export default function BookingPage() {
       ...selectedTOPackages.map(p => parseInt(p.price.replace(/\D/g, ''))),
       ...selectedAdditionalServices.map(s => parseInt(s.price.replace(/\D/g, '')))
     ].reduce((sum, price) => sum + price, 0);
+
+    const handleConfirm = () => {
+      // Финальная проверка перед отправкой
+      const hasTO = formData.TOPackages.length > 0;
+      const hasDiagnostic = formData.diagnosticType && formData.symptoms.length > 0;
+
+      if (!hasTO && !hasDiagnostic) {
+        setError('Не выбрано ни ТО, ни диагностика');
+        return;
+      }
+
+      updateField('totalPrice', `От ${totalPrice}р`);
+      setStep(5);
+    };
 
     return (
       <div className="w-full max-w-md mx-auto px-4">
@@ -425,7 +572,7 @@ export default function BookingPage() {
 
         {/* Пакеты ТО */}
         {selectedTOPackages.length > 0 && (
-          <div className="border border-gray-200 rounded-xl  shadow-md/5 p-4 mb-4">
+          <div className="border border-gray-200 rounded-xl shadow-md/5 p-4 mb-4">
             <h4 className="text-sm font-light mb-3 text-gray-500">Выбранные пакеты</h4>
             {selectedTOPackages.map(pkg => (
               <div key={pkg.id} className="flex justify-between items-start mb-2">
@@ -441,7 +588,7 @@ export default function BookingPage() {
 
         {/* Дополнительные работы */}
         {selectedAdditionalServices.length > 0 && (
-          <div className="border border-gray-200 rounded-xl  shadow-md/5 rounded p-4 mb-4">
+          <div className="border border-gray-200 rounded-xl shadow-md/5 rounded p-4 mb-4">
             <h4 className="text-sm font-light mb-3 text-gray-500">Дополнительные работы</h4>
             {selectedAdditionalServices.map(service => (
               <div key={service.id} className="flex justify-between items-center mb-2">
@@ -454,7 +601,7 @@ export default function BookingPage() {
 
         {/* Диагностика */}
         {formData.isDiagnostic && (
-          <div className="border border-gray-200 rounded-xl  shadow-md/5 rounded-xl  shadow-md/5 rounded p-4 mb-4">
+          <div className="border border-gray-200 rounded-xl shadow-md/5 rounded-xl shadow-md/5 rounded p-4 mb-4">
             <h4 className="text-sm font-light mb-3 text-gray-500">Симптомы диагностики</h4>
             {selectedSymptoms.length > 0 ? (
               selectedSymptoms.map(symp => (
@@ -466,27 +613,30 @@ export default function BookingPage() {
           </div>
         )}
 
+        {/* ОШИБКА: финальная проверка */}
+        {error && (
+          <div className="text-red-500 mb-4 text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Итоговая стоимость */}
-        <div className="border border-gray-200 rounded-xl  shadow-md/5 p-4 mb-6 ">
+        <div className="border border-gray-200 rounded-xl shadow-md/5 p-4 mb-6">
           <div className="flex justify-between items-center text-lg">
             <div className="font-normal text-gray">Итоговая стоимость</div>
             <div className="font-bold text-blue">От {totalPrice}р</div>
           </div>
         </div>
 
-
-
         <NavigationButtons
           onBack={() => setStep(formData.isDiagnostic ? 3 : 2)}
-          onNext={() => {
-            updateField('totalPrice', `От ${totalPrice}р`);
-            setStep(5)
-          }}
+          onNext={handleConfirm}
           nextLabel="Подтвердить"
         />
       </div>
     );
   };
+
   // ================================
   // ШАГ 4: Заявка создана (исправленная версия)
   // ================================
@@ -546,7 +696,6 @@ export default function BookingPage() {
   // ОСНОВНОЙ РЕНДЕР
   // ================================
   return (
-
     <div className="flex-1 flex flex-col w-full py-8 px-4">
       {step === 1 && <Step1 />}
       {step === 2 && <Step2TO />}
@@ -554,6 +703,5 @@ export default function BookingPage() {
       {step === 4 && <Step3 />}
       {step === 5 && <Step4 />}
     </div>
-
   );
 };
