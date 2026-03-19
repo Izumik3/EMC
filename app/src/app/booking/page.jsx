@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import RadioButton from '@/components/RadioButton';
 import Checkbox from '@/components/Checkbox';
@@ -488,17 +488,19 @@ export default function BookingPage() {
     );
   };
   // ================================
-  // ШАГ 4: Заявка создана
+  // ШАГ 4: Заявка создана (исправленная версия)
   // ================================
   const Step4 = () => {
-    const randomNumber = Math.floor(Math.random() * 100) + 1;
+    const randomNumber = useMemo(() => Math.floor(Math.random() * 100) + 1, []);
+    
     useEffect(() => {
       fetch('/api/saveBooking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, bookingNumber: randomNumber }),
       }).then(() => console.log('Заявка сохранена'));
-    }, [formData]);
+    }, [formData, randomNumber]);
+    
     return (
       <div className="w-full max-w-md mx-auto px-4">
         <div className="flex justify-between items-center mb-6">
@@ -508,14 +510,12 @@ export default function BookingPage() {
         </div>
 
         <div className="text-center py-8">
-
-
           <h3 className="font-normal mb-4 text-gray text-base">
             Приблизительная стоимость работ
           </h3>
 
           {/* Детали заявки */}
-          <div className="rounded p-4 mb-3 text-left border border-gray-200 rounded-xl  shadow-md/5">
+          <div className="rounded p-4 mb-3 text-left border border-gray-200 rounded-xl shadow-md/5">
             <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-200">
               <div className="text-sm font-light text-gray-500">Номер заявки</div>
               <div className="font-normal text-gray">{randomNumber}</div>
@@ -557,4 +557,3 @@ export default function BookingPage() {
 
   );
 };
-
