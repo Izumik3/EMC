@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 env:
   DOMAIN: wewewewe.ru
-  SERVER_PATH: /home/deploy/app
+  SERVER_PATH: /home/deploy/app/EMC
   SERVER_USER: deploy
 
 jobs:
